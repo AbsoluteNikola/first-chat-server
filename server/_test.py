@@ -12,7 +12,7 @@ def gen():
 
 
 async def main():
-    name = gen()
+    name = 'A'
     async with websockets.connect(f'ws://localhost:8000/chat?name={name}&room=1') as ws:
         while True:
             msg = gen()
