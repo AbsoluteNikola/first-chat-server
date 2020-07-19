@@ -5,21 +5,124 @@
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <script src="static/index.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.8.2/css/bulma.min.css"
+          integrity="sha256-qS+snwBgqr+iFVpBB58C9UCxKFhyL03YHpZfdNUhSEw=" crossorigin="anonymous"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
     <title>Chat</title>
 </head>
 <body>
 <div>
-    <input id="name" type="text">
-    <input id="room" type="text">
-    <button onclick="connect()">Connect</button>
-</div>
-<div>
-    <input id="newMessage" type="text">
-    <button onclick="send()">Send</button>
-</div>
-<div id="messages">
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item">
+                <div class="title">
+                    Instant messaging service
+                </div>
+            </a>
+        </div>
+    </nav>
 
+    <div class="notification" style="margin: 20px">
+        App doesn't store any of your messages, just choose a room and start chatting.
+        <br/>
+        <br/>
+
+        <div id="login">
+            <div class="field">
+                <label class="label">Name</label>
+                <div class="control">
+                    <input id="name" class="input" type="text" placeholder="Name">
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label">Room</label>
+                <div class="control">
+                    <input id="room" class="input" type="text" placeholder="Room">
+                </div>
+            </div>
+
+            <button class="button" onclick="connect()">Connect</button>
+        </div>
+        <div id="chat" class="disabled">
+            Your name: <span id="sname"></span><br/>
+            You room: <span id="sroom"></span><br/>
+            <button class="button" onclick="logout()">Logout</button><br/><br/>
+            <div class="notification" id="messages" style="background-color: white">
+
+            </div>
+            <div>
+                <div class="field">
+                    <label class="label">Would you like to say something?</label>
+                    <div class="control">
+                        <input id="newMessage" class="input" type="text" placeholder="Message">
+                    </div>
+                </div>
+                <button class="button" onclick="send()">Send</button>
+            </div>
+        </div>
+    </div>
 </div>
 </body>
 </html>
+
+<style>
+    .disabled {
+        display: none;
+    }
+</style>
+
+<script>
+    function connect() {
+    let name = document.getElementById('name').value.trim();
+    let room = document.getElementById('room').value.trim();
+    console.log(name);
+    console.log(room);
+    console.log(`${name}&room=${room}`);
+    let ws = new WebSocket(`ws://${window.location.hostname}:${ window.location.port}/chat?name=${name}&room=${room}`);
+    ws.onopen = function() {
+        console.log('connected');
+        $("#login").addClass("disabled");
+        $("#chat").removeClass("disabled");
+        $("#sname").html(name);
+        $("#sroom").html(room);
+    };
+    ws.onclose = function (event) {
+        if(event.reason === 'UserAlreadyExists')
+            alert('User already exists');
+        console.log(event, 'connection closed');
+        window.location.reload(true);
+    };
+    ws.onmessage = receive;
+    window.ws = ws;
+    window.name = name;
+    window.room = room;
+}
+
+function logout() {
+    window.location.reload(true);
+}
+
+function receive(event) {
+    console.log(event.data);
+    let msg = JSON.parse(event.data);
+    addMessage(msg.name, msg.data);
+}
+
+function addMessage(name, text) {
+    let d = $("#messages");
+    d.append(`<div><span class="tag">${name}</span> ${text} <\div>`);
+}
+
+
+function send() {
+    let msg = $("#newMessage")
+    let text = msg.val();
+    msg.val("")
+
+    window.ws.send(JSON.stringify({
+        name: window.name,
+        data: text
+    }));
+}
+</script>

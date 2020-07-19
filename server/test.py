@@ -4,26 +4,26 @@ import ujson
 
 from random import choice
 from string import ascii_letters
-from time import sleep
 
 
-def gen():
+def random_str():
     return ''.join([choice(ascii_letters) for _ in range(10)])
 
 
-async def main():
-    name = 'A'
+async def echo_test():
+    attempts = 5
+    name = random_str()
     async with websockets.connect(f'ws://localhost:8000/chat?name={name}&room=1') as ws:
-        while True:
-            msg = gen()
-            await ws.send(ujson.dumps({
+        for i in range(attempts):
+            msg = random_str()
+            data_to_echo = {
                 'type': 'text',
                 'name': name,
                 'data': msg
-            }))
-            print(await ws.recv())
-            sleep(5)
+            }
+            await ws.send(ujson.dumps(data_to_echo))
+            assert ujson.loads(await ws.recv()) == data_to_echo
 
 
 if __name__ == '__main__':
-    asyncio.get_event_loop().run_until_complete(main())
+    asyncio.get_event_loop().run_until_complete(echo_test())
