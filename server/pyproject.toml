@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "chat"
+version = "0.1.0"
+description = "Simple python chat server"
+authors = ["Alekseev Aleksandr <alekseev2002@inbox.ru>"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+sanic = "^20.3.0"
+taskipy = "^1.2.1"
+ujson = "^2.0.3"
+loguru = "^0.5.0"
+
+[tool.poetry.dev-dependencies]
+
+[tool.taskipy.tasks]
+start = "python3 start.py"
+test = "python3 test.py"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"

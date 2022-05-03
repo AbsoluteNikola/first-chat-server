@@ -5,10 +5,9 @@ from sanic import response
 from sanic.request import Request
 from sanic.exceptions import abort
 from sanic.websocket import WebSocketCommonProtocol
-
 from websockets.exceptions import ConnectionClosed
-
 from room import Room, UserAlreadyExists
+from loguru import logger
 
 
 app = Sanic('chat')
@@ -17,37 +16,39 @@ app.config.rooms = {}
 
 
 @app.route('/')
-async def index(request: Request):
+async def index(_: Request):
     return await response.file('static/index.html')
+
+
+async def chat_loop(name: str, room: Room, ws: WebSocketCommonProtocol):
+    while True:
+        try:
+            data = ujson.loads(await ws.recv())
+            logger.info(f"New data in {name}'s chat loop. {data}")
+        except ConnectionClosed:
+            logger.info(f"Chat loop with {name} closed.")
+            return
+        await room.send_message(**data)
 
 
 @app.websocket('/chat')
 async def register_user(request: Request, ws: WebSocketCommonProtocol):
-
+    logger.info(f"Registering new user, paramsL {request.args}")
     if 'name' not in request.args or 'room' not in request.args:
+        logger.warning("No args")
         abort(400)
 
-    name_s = request.args['name'][0]
-    room_s = request.args['room'][0]
+    name_arg = request.args['name'][0]
+    room_arg = request.args['room'][0]
 
-    if room_s not in app.config.rooms:
-        app.config.rooms[room_s] = Room(room_s)
+    if room_arg not in app.config.rooms:
+        logger.info("Room not found. Creating new room.")
+        app.config.rooms[room_arg] = Room(room_arg)
 
-    room = app.config.rooms[room_s]
+    room = app.config.rooms[room_arg]
     try:
-        room.add_user(name_s, ws)
+        room.add_user(name_arg, ws)
     except UserAlreadyExists:
-        print(f'{name_s} already exists')
+        logger.warning("User already exists, closing the socket")
         await ws.close(code=1003, reason='UserAlreadyExists')
-        return
-
-    while True:
-        try:
-            data = ujson.loads(await ws.recv())
-        except ConnectionClosed:
-            return
-
-        await room.send_message(**data)
-
-
-
+    await chat_loop(name_arg, room, ws)

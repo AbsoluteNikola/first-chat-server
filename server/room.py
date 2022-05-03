@@ -1,5 +1,4 @@
 import ujson
-from collections import namedtuple
 
 from sanic.websocket import WebSocketCommonProtocol
 from websockets.exceptions import ConnectionClosed
@@ -10,7 +9,7 @@ class UserAlreadyExists(Exception):
 
 
 class Room:
-    def __init__(self, name):
+    def __init__(self, name: str):
         self._name = name
         self._clients = {}
 
@@ -22,18 +21,15 @@ class Room:
         self._clients[name] = ws
 
     async def send_message(self, **kwargs):
-        to_del = []
+        expired_user = []
         for i, (name, ws) in enumerate(self._clients.items()):
-            if name == kwargs.get('name'):
-                continue
-
             try:
                 await ws.send(ujson.dumps(kwargs))
             except ConnectionClosed:
-                to_del.append(name)
+                expired_user.append(name)
 
-        for name in to_del:
-            self._clients.pop(name)
+        for name in expired_user:
+            del self._clients[name]
 
     def __len__(self):
         return len(self._clients)
