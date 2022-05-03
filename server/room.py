@@ -1,6 +1,5 @@
 import ujson
 
-from sanic.websocket import WebSocketCommonProtocol
 from websockets.exceptions import ConnectionClosed
 
 
@@ -13,7 +12,7 @@ class Room:
         self._name = name
         self._clients = {}
 
-    def add_user(self, name: str, ws: WebSocketCommonProtocol):
+    def add_user(self, name: str, ws):
         if name in self._clients:
             raise UserAlreadyExists
 

@@ -3,8 +3,7 @@ import ujson
 from sanic import Sanic
 from sanic import response
 from sanic.request import Request
-from sanic.exceptions import abort
-from sanic.websocket import WebSocketCommonProtocol
+import sanic.exceptions as exs
 from websockets.exceptions import ConnectionClosed
 from room import Room, UserAlreadyExists
 from loguru import logger
@@ -17,10 +16,10 @@ app.config.rooms = {}
 
 @app.route('/')
 async def index(_: Request):
-    return await response.file('static/index.html')
+    return await response.file('server/static/index.html')
 
 
-async def chat_loop(name: str, room: Room, ws: WebSocketCommonProtocol):
+async def chat_loop(name: str, room: Room, ws):
     while True:
         try:
             data = ujson.loads(await ws.recv())
@@ -32,11 +31,11 @@ async def chat_loop(name: str, room: Room, ws: WebSocketCommonProtocol):
 
 
 @app.websocket('/chat')
-async def register_user(request: Request, ws: WebSocketCommonProtocol):
+async def register_user(request: Request, ws):
     logger.info(f"Registering new user, paramsL {request.args}")
     if 'name' not in request.args or 'room' not in request.args:
         logger.warning("No args")
-        abort(400)
+        exs.SanicException("Bad request", 400)
 
     name_arg = request.args['name'][0]
     room_arg = request.args['room'][0]
